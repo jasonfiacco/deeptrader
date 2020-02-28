@@ -68,9 +68,9 @@ class DQNAgent(Agent):
         episode: int = kwargs.get('episode', None)
 
         if episode:
-            filename = "policy_network__" + self.id + "__" + str(episode).zfill(3) + ".hdf5"
+            filename = self.id + "__" + str(episode).zfill(3) + ".hdf5"
         else:
-            filename = "policy_network__" + self.id + ".hdf5"
+            filename = self.id + ".hdf5"
 
         self.policy_network.save(path + filename)
 
@@ -88,6 +88,7 @@ class DQNAgent(Agent):
         optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
         loss = tf.keras.losses.Huber()
 
+        #Sample replay database
         transitions = memory.sample(batch_size)
         batch = DQNTransition(*zip(*transitions))
 
@@ -123,13 +124,13 @@ class DQNAgent(Agent):
               save_path: str = None,
               callback: callable = None,
               **kwargs) -> float:
-        batch_size: int = kwargs.get('batch_size', 128)
+        batch_size: int = kwargs.get('batch_size', 64)
         discount_factor: float = kwargs.get('discount_factor', 0.9999)
         learning_rate: float = kwargs.get('learning_rate', 0.0001)
         eps_start: float = kwargs.get('eps_start', 0.9)
         eps_end: float = kwargs.get('eps_end', 0.05)
-        eps_decay_steps: int = kwargs.get('eps_decay_steps', 200)
-        update_target_every: int = kwargs.get('update_target_every', 1000)
+        eps_decay_steps: int = kwargs.get('eps_decay_steps', 600)
+        update_target_every: int = kwargs.get('update_target_every', 500)
         memory_capacity: int = kwargs.get('memory_capacity', 1000)
         render_interval: int = kwargs.get('render_interval', 50)  # in steps, None for episode end render only
 
@@ -145,12 +146,17 @@ class DQNAgent(Agent):
         self.env.max_episodes = n_episodes
         self.env.max_steps = n_steps
 
+
+        #Do a certain number of episodes
         while episode < n_episodes and not stop_training:
+            #Reset the state at the beginning of every episode
             state = self.env.reset()
             done = False
             steps_done = 0
 
+            #Repeat until we reach a terminal state
             while not done:
+                #Pick some action, take it, and store the SARSA in our memory
                 threshold = eps_end + (eps_start - eps_end) * np.exp(-steps_done / eps_decay_steps)
                 action = self.get_action(state, threshold=threshold)
                 next_state, reward, done, _ = self.env.step(action)
@@ -161,6 +167,7 @@ class DQNAgent(Agent):
                 total_reward += reward
                 steps_done += 1
 
+                #Don't train until we get enough things in our memory to train with
                 if len(memory) < batch_size:
                     continue
 

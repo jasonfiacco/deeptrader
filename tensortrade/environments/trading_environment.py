@@ -302,6 +302,11 @@ class TradingEnvironment(gym.Env, TimeIndexed):
         """
         current_step = self.clock.step - 1
 
+        if self._price_history is not None:
+            price_history=self._price_history[self._price_history.index < current_step],
+        else:
+            price_history = None
+
         for renderer in self._renderers:
             price_history = None if self._price_history is None else self._price_history[self._price_history.index < current_step]
             renderer.render(episode=episode,
