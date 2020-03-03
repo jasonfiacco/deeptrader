@@ -24,7 +24,7 @@ from tensortrade.data import Forward
 class ExchangeOptions:
 
     def __init__(self,
-                 commission: float = 0.003,
+                 commission: float = 0.000,
                  min_trade_size: float = 1e-6,
                  max_trade_size: float = 1e6,
                  min_trade_price: float = 1e-8,

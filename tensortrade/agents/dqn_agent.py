@@ -153,6 +153,7 @@ class DQNAgent(Agent):
             state = self.env.reset()
             done = False
             steps_done = 0
+            episode_reward = 0
 
             #Repeat until we reach a terminal state
             while not done:
@@ -165,6 +166,7 @@ class DQNAgent(Agent):
 
                 state = next_state
                 total_reward += reward
+                episode_reward+= reward
                 steps_done += 1
 
                 #Don't train until we get enough things in our memory to train with
@@ -190,6 +192,20 @@ class DQNAgent(Agent):
 
             if not render_interval or steps_done < n_steps:
                 self.env.render(episode)  # render final state at episode end if not rendered earlier
+
+            #Plot the rewards:
+            if plot_rewards:
+                episode_rewards.append(episode_reward)
+                episode_step_sequences.append(steps_done)
+                episode_reward = 0
+                #Now plot
+                plt.clf()
+                plt.xlabel('Step')
+                plt.ylabel('Reward')
+                for ed, steps in zip(episode_rewards, episode_step_sequences):
+                    plt.plot(steps, ed)
+                plt.show() if done else plt.pause(0.001) # Pause a bit so that the graph is updated
+
 
             self.env.save()
 
