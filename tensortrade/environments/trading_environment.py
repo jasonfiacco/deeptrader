@@ -329,7 +329,7 @@ class TradingEnvironment(gym.Env, TimeIndexed):
 
     def close(self):
         """Utility method to clean environment before closing."""
-        if self._renderers:
+        if hasattr(self, '_renderers'):
             for renderer in self._renderers:
                 if callable(hasattr(renderer, 'close')):
                     renderer.close()  # pylint: disable=no-member
