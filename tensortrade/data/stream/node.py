@@ -21,6 +21,7 @@ References:
 
 from abc import abstractmethod
 from tensortrade.base.core import Observable
+import numpy as np
 
 
 class Node(Observable):
@@ -47,7 +48,7 @@ class Node(Observable):
         return self._value
 
     @value.setter
-    def value(self, value: float):
+    def value(self, value: np.float32):
         self._value = value
 
     def __call__(self, *inputs):
