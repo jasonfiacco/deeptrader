@@ -21,4 +21,4 @@ tags
 Pipfile
 
 # agent storage
-examples/agents
+examples/saved_agents
