@@ -188,6 +188,14 @@ class Portfolio(Component, TimedIdentifiable, FeedListener):
         """The current total balance of each instrument over all wallets."""
         return [wallet.total_balance for wallet in self._wallets.values()]
 
+    @property
+    def weights(self):
+        p = self.performance
+        p2 = p.iloc[:, :]
+        asset_worths = p2.loc[:, [("/worth" in name) for name in p2.columns]]
+        weights = asset_worths.div(p2['net_worth'], axis=0)
+        return weights
+
     def get_wallet(self, exchange_id: str, instrument: Instrument):
         return self._wallets[(exchange_id, instrument.symbol)]
 

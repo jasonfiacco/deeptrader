@@ -94,6 +94,8 @@ class SimpleOrders(ActionScheme):
             return None
 
         ((exchange, pair), (criteria, prop, duration, side)) = self.actions[action]
+        # print(action)
+        # print(((exchange, pair), (criteria, prop, duration, side)))
 
         price = exchange.quote_price(pair)
 
@@ -102,6 +104,10 @@ class SimpleOrders(ActionScheme):
 
         size = (wallet.balance.size * prop)
         size = min(wallet.balance.size, size)
+
+        # print("Instrument: ", instrument)
+        # print("WALLET>BALANCE>SIZE:", wallet.balance.size)
+        # print("SIZE", size)
 
         if size < 10 ** -instrument.precision:
             return None

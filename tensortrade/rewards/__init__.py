@@ -1,10 +1,12 @@
 from .reward_scheme import RewardScheme
 from .simple_profit import SimpleProfit
 from .risk_adjusted_returns import RiskAdjustedReturns
+from .diversified_profit import DiversifiedProfit
 
 _registry = {
     'simple': SimpleProfit,
-    'risk-adjusted': RiskAdjustedReturns
+    'risk-adjusted': RiskAdjustedReturns,
+    'diversified': DiversifiedProfit
 }
 
 
@@ -17,6 +19,7 @@ def get(identifier: str) -> RewardScheme:
     Raises:
         KeyError: if identifier is not associated with any `RewardScheme`
     """
+    print(_registry.keys())
     if identifier not in _registry.keys():
         raise KeyError(
             'Identifier {} is not associated with any `RewardScheme`.'.format(identifier))
