@@ -190,9 +190,10 @@ class Portfolio(Component, TimedIdentifiable, FeedListener):
 
     @property
     def weights(self):
+        "Weight in each asset, INCLUDING USD"
         p = self.performance
         p2 = p.iloc[:, :]
-        asset_worths = p2.loc[:, [("/worth" in name) for name in p2.columns]]
+        asset_worths = p2.loc[:, [(any(word in name for word in ["/worth", "/USD:/total"])) for name in p2.columns]]
         weights = asset_worths.div(p2['net_worth'], axis=0)
         return weights
 

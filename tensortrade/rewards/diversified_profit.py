@@ -82,7 +82,7 @@ class DiversifiedProfit(RewardScheme):
         weights = portfolio.weights[-1:].values[0]
         diversity = np.dot(weights, weights)
 
-        reward = risk_adjusted_return - .2*diversity
+        reward = risk_adjusted_return + .2*(1/diversity)
 
 
 

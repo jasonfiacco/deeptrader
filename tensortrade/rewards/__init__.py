@@ -19,7 +19,6 @@ def get(identifier: str) -> RewardScheme:
     Raises:
         KeyError: if identifier is not associated with any `RewardScheme`
     """
-    print(_registry.keys())
     if identifier not in _registry.keys():
         raise KeyError(
             'Identifier {} is not associated with any `RewardScheme`.'.format(identifier))
