@@ -14,6 +14,7 @@
 
 import pandas as pd
 import numpy as np
+import math
 
 from typing import Callable
 
@@ -72,17 +73,54 @@ class DiversifiedProfit(RewardScheme):
 
         return (expected_return - self._risk_free_rate + 1E-9) / (downside_std + 1E-9)
 
+    def _get_log_cum_returns(self, portfolio: 'Portfolio') -> float:
+        t_f = portfolio.performance.index[-1]
+
+        log_cum_returns = (1/t_f) * (math.log(portfolio.net_worth/portfolio.initial_net_worth))
+        return log_cum_returns
+
+    def _get_simple_profit(self, portfolio: 'Portfolio') -> float:
+        returns = portfolio.performance['net_worth'].pct_change().dropna()
+        returns = (1 + returns[-self._window_size:]).cumprod() - 1
+        if len(returns) < 1:
+            simple_profit = 0
+        else:
+            simple_profit = returns.iloc[-1]
+        return simple_profit
+
+    def _standard_log_returns(self, portfolio: 'Portfolio') -> float:
+        t_f = portfolio.performance.index[-1]
+        returns_in_raw_percent = 1 + portfolio.performance['net_worth'].pct_change().dropna()
+        profit_this_step = (returns_in_raw_percent[-1:])
+        return (1/t_f) * math.log(profit_this_step)
+
+
     def get_reward(self, portfolio: 'Portfolio') -> float:
         """Return the reward corresponding to the selected risk-adjusted return metric."""
-        returns = portfolio.performance['net_worth'][-(self._window_size + 1):].pct_change().dropna()
-        risk_adjusted_return = self._return_algorithm(returns)
+        #USING SHARPE RATIO
+        # returns = portfolio.performance['net_worth'][-(self._window_size + 1):].pct_change().dropna()
+        # risk_adjusted_return = self._return_algorithm(returns)
+        
+
+
+        #Calculate log_cum_returns
+        log_returns = self._standard_log_returns(portfolio)
 
         #Calculate portfolio diversity, which is between 0 and 1.
         #1 means not diversified. small number means very diversified
         weights = portfolio.weights[-1:].values[0]
         diversity = np.dot(weights, weights)
 
-        reward = risk_adjusted_return + .2*(1/diversity)
+        #Calculate how much the weights have changed
+        weights_change_list = (portfolio.weights[-(1):].values[0]) - (portfolio.weights[-(2):].values[0])
+        weights_change = sum(weights_change_list)
+
+        #Reward function
+        #reward = risk_adjusted_return + (1/diversity)
+        #reward = simple_profit + 10*(1/diversity)
+        reward = log_returns
+
+
 
 
 
