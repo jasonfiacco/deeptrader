@@ -74,16 +74,29 @@ class DiversifiedProfit(RewardScheme):
 
     def get_reward(self, portfolio: 'Portfolio') -> float:
         """Return the reward corresponding to the selected risk-adjusted return metric."""
-        returns = portfolio.performance['net_worth'][-(self._window_size + 1):].pct_change().dropna()
-        risk_adjusted_return = self._return_algorithm(returns)
+        #USING SHARPE RATIO
+        #returns = portfolio.performance['net_worth'][-(self._window_size + 1):].pct_change().dropna()
+        #risk_adjusted_return = self._return_algorithm(returns)
+
+        #USING SIMPLE PROFIT
+        returns = portfolio.performance['net_worth'].pct_change().dropna()
+        returns = (1 + returns[-self.window_size:]).cumprod() - 1
+        if len(returns) < 1:
+            simple_profit = 0
+        else:
+            simple_profit = returns.iloc[-1]
 
         #Calculate portfolio diversity, which is between 0 and 1.
         #1 means not diversified. small number means very diversified
         weights = portfolio.weights[-1:].values[0]
         diversity = np.dot(weights, weights)
 
-        reward = risk_adjusted_return + .2*(1/diversity)
+        #Calculate how much the weights have changed
+        weights_change_list = portfolio.weights[-(1):].values - portfolio.weights[-(2):].values
+        weights_change = sum(weights_changes)
 
-
+        #Reward function
+        #reward = risk_adjusted_return + (1/diversity)
+        reward = simple_profit + .2*(1/diversity)
 
         return reward

@@ -23,7 +23,7 @@ class SentimentAnalyzer():
         for tweet in tweets:
             tweet_list.append(tweet.text)
 
-        time.sleep(2)
+        time.sleep(1)
 
         return tweet_list
 
