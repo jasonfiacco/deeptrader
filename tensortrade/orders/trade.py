@@ -29,9 +29,13 @@ class TradeType(Enum):
 class TradeSide(Enum):
     BUY = 'buy'
     SELL = 'sell'
+    HOLD = 'hold'
 
     def instrument(self, pair: 'TradingPair') -> 'Instrument':
-        return pair.base if self == TradeSide.BUY else pair.quote
+        if self == TradeSide.BUY:
+            return pair.base
+        else:
+            return pair.quote
 
     def __str__(self):
         return str(self.value)
@@ -115,6 +119,10 @@ class Trade(TimedIdentifiable):
     @property
     def is_sell(self) -> bool:
         return self.side == TradeSide.SELL
+
+    @property
+    def is_hold(self) -> bool:
+        return self.side == TradeSide.HOLD
 
     @property
     def is_limit_order(self) -> bool:

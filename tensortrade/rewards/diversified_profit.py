@@ -92,7 +92,16 @@ class DiversifiedProfit(RewardScheme):
         t_f = portfolio.performance.index[-1]
         returns_in_raw_percent = 1 + portfolio.performance['net_worth'].pct_change().dropna()
         profit_this_step = (returns_in_raw_percent[-1:])
-        return (1/t_f) * math.log(profit_this_step)
+        return math.log(profit_this_step)
+
+    def _get_change_in_balances(self, portfolio: 'Portfolio') -> float:
+        total_balances = portfolio.performance.loc[:, [("total" in name) for name in portfolio.performance.columns]]
+        change_df = total_balances.dropna().pct_change()
+        change_df = change_df.replace([np.inf, -np.inf, np.nan], 0)
+        change_in_balances = change_df.iloc[-1].values
+        #print("CHANGE IN BALANCES:", change_in_balances)
+        total_changes = np.dot(change_in_balances, change_in_balances)
+        return total_changes
 
 
     def get_reward(self, portfolio: 'Portfolio') -> float:
@@ -100,7 +109,7 @@ class DiversifiedProfit(RewardScheme):
         #USING SHARPE RATIO
         # returns = portfolio.performance['net_worth'][-(self._window_size + 1):].pct_change().dropna()
         # risk_adjusted_return = self._return_algorithm(returns)
-
+        
 
 
         #Calculate log_cum_returns
@@ -115,16 +124,38 @@ class DiversifiedProfit(RewardScheme):
         weights_change_list = (portfolio.weights[-(1):].values[0]) - (portfolio.weights[-(2):].values[0])
         weights_change = sum(weights_change_list)
 
+
+        #Get change in balances
+        changes = self._get_change_in_balances(portfolio)
+        changes = int(round(changes))
+
+        penalty = 0
+        #print("changes:", changes)
+        # if changes > 0:
+        #     #print("CHANGES GREATER THAN ZERO:", changes)
+        #     penalty = 1000
+
         #Reward function
         #reward = risk_adjusted_return + (1/diversity)
         #reward = simple_profit + 10*(1/diversity)
-        reward = log_returns
+        
+        # reward =  log_returns + (portfolio.performance.index[-1])
+        #print("DIVERSITY", diversity)
+        #print("1/DIVERSITY", 1/diversity)
+
+       
 
 
+        # reward =  log_returns + (.001)*(1/diversity)
+        
+        reward = log_returns - .5*(diversity * abs(log_returns))
+        #reward = log_returns
+
+        # print("RETURNS", log_returns)
+        # print("Diversity", diversity)
+        # print("Diversity term", .5*(diversity * abs(log_returns)))
+        # print("reward", reward)
 
 
-        #Reward function
-        #reward = risk_adjusted_return + (1/diversity)
-        reward = simple_profit + .2*(1/diversity)
 
         return reward

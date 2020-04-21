@@ -120,6 +120,11 @@ class Order(TimedIdentifiable):
         return self.side == TradeSide.SELL
 
     @property
+    def is_HOLD(self) -> bool:
+        return self.side == TradeSide.HOLD
+
+
+    @property
     def is_limit_order(self) -> bool:
         return self.type == TradeType.LIMIT
 

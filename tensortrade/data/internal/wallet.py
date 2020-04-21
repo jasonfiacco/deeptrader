@@ -13,8 +13,9 @@ def create_wallet_source(wallet: Wallet, include_worth=True):
         free_balance = Lambda("free", lambda w: w.balance.size, wallet)
         locked_balance = Lambda("locked", lambda w: w.locked_balance.size, wallet)
         total_balance = Lambda("total", lambda w: w.total_balance.size, wallet)
+        is_empty = Lambda("is_empty", lambda w: (1 if w.total_balance.size<10 else 0), wallet)
 
-        nodes = [free_balance, locked_balance, total_balance]
+        nodes = [free_balance, locked_balance, total_balance, is_empty]
 
         if include_worth:
             price = Select(lambda node: node.name.endswith(symbol))(wallet.exchange)

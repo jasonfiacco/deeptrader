@@ -219,6 +219,7 @@ class Portfolio(Component, TimedIdentifiable, FeedListener):
             ":/free",
             ":/locked",
             ":/total",
+            ":/is_empty",
             "worth"
         ]
 

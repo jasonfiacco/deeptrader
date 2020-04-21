@@ -19,7 +19,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from gym.spaces import Discrete, Box
+from gym.spaces import Discrete, Box, Dict
 from typing import Union, List, Tuple, Dict
 
 import tensortrade.actions as actions
@@ -35,6 +35,9 @@ from tensortrade.orders import Broker
 from tensortrade.wallets import Portfolio
 from tensortrade.environments import ObservationHistory
 from tensortrade.environments.render import get
+
+from tensortrade.orders import Order, OrderListener, TradeSide, TradeType
+
 
 
 class TradingEnvironment(gym.Env, TimeIndexed):
@@ -150,16 +153,43 @@ class TradingEnvironment(gym.Env, TimeIndexed):
             self.feed = self.feed + create_internal_feed(self.portfolio)
 
         initial_obs = self.feed.next()
-        n_features = len(initial_obs.keys()) if self.use_internal else len(self._external_keys)
+        n_features = len(initial_obs.keys()) if self.use_internal else (len(self._external_keys) + len(self.portfolio.wallets))
 
-        self.observation_space = Box(
-            low=self._observation_lows,
-            high=self._observation_highs,
-            shape=(self.window_size, n_features),
-            dtype=self._observation_dtype
-        )
+        self.observation_space = gym.spaces.Dict({
+            "action_mask": Box(0.0, 1.0, shape=(self.action_space.n, )),
+            "avail_actions": Box(-5000.0, 5000.0, shape=(self.action_space.n, 1)),
+            "real_obs": Box(
+                                low=self._observation_lows,
+                                high=self._observation_highs,
+                                shape=(self.window_size, n_features),
+                                dtype=self._observation_dtype
+                            )
+            })
+
+
+        
 
         self.feed.reset()
+
+
+    def update_avail_actions(self):
+        self.action_mask = np.array([1.] * self.action_space.n)
+
+        #First mask any buy actions if USD = 0
+        #Find index of every BUY action, which are invalid when USD is zero.
+        if self.portfolio.base_balance < 5:
+            buy_indices = [i+1 for i, x in enumerate(self.action_scheme.actions[1:]) if x[1][3]==TradeSide.BUY]
+            for i in buy_indices:
+                self.action_mask[i] = 0
+
+        #Now mask any sell actions for assets with zero balance left
+        #Find all exchange_pairs that have zero balance
+        empty_exchange_pairs = [self.portfolio.base_instrument/wallet.instrument for wallet in self.portfolio.wallets if wallet.balance < 5 and wallet.instrument != self.portfolio.base_instrument]
+        #Get the action index of these invalid sell actions
+        sell_indices = [i+1 for i, x in enumerate(self.action_scheme.actions[1:]) if x[0][1] in empty_exchange_pairs and x[1][3]==TradeSide.SELL]
+        for i in sell_indices:
+                self.action_mask[i] = 0
+
 
     @property
     def portfolio(self) -> Portfolio:
@@ -220,7 +250,9 @@ class TradingEnvironment(gym.Env, TimeIndexed):
             done (bool): If `True`, the environments is complete and should be restarted.
             info (dict): Any auxiliary, diagnostic, or debugging information to output.
         """
+
         order = self.action_scheme.get_order(action, self.portfolio)
+        #print("ORDER:", order)
 
         if order:
             self._broker.submit(order)
@@ -230,7 +262,9 @@ class TradingEnvironment(gym.Env, TimeIndexed):
         obs_row = self.feed.next()
 
         if not self.use_internal:
-            obs_row = {k: obs_row[k] for k in self._external_keys}
+            obs_row = {k: obs_row[k] for k in self._external_keys ^ set([name for name in obs_row.keys() if "is_empty" in name])} 
+
+
 
         self.history.push(obs_row)
 
@@ -244,6 +278,7 @@ class TradingEnvironment(gym.Env, TimeIndexed):
             raise ValueError('Reward returned by the reward scheme must by a finite float.')
 
         done = (self.portfolio.profit_loss < self._max_allowed_loss) or not self.feed.has_next()
+
 
         info = {
             'step': self.clock.step,
@@ -259,7 +294,27 @@ class TradingEnvironment(gym.Env, TimeIndexed):
             self.logger.debug('Reward ({}): {}'.format(self.clock.step, reward))
             self.logger.debug('Performance: {}'.format(self._portfolio.performance.tail(1)))
 
+            print('Order:       {}'.format(order))
+            print('Observation: {}'.format(obs))
+            print('P/L:         {}'.format(self._portfolio.profit_loss))
+            print('Reward ({}): {}'.format(self.clock.step, reward))
+            print('Performance: {}'.format(self._portfolio.performance.tail(1)))
+
+
         self.clock.increment()
+
+        #ADDITION
+        # if not order:
+        #     done = True
+        #     reward = -1
+        # else:
+        #     reward = 1
+        self.update_avail_actions()
+        obs = {
+            "action_mask": self.action_mask,
+            "avail_actions": np.array([[i] for i in list(range(self.action_space.n))]),
+            "real_obs": obs,
+        }
 
         return obs, reward, done, info
 
@@ -269,6 +324,7 @@ class TradingEnvironment(gym.Env, TimeIndexed):
         Returns:
             The episode's initial observation.
         """
+
         self.episode_id = uuid.uuid4()
         self.clock.reset()
         self.feed.reset()
@@ -281,16 +337,26 @@ class TradingEnvironment(gym.Env, TimeIndexed):
         for renderer in self._renderers:
             renderer.reset()
 
+
         obs_row = self.feed.next()
 
         if not self.use_internal:
-            obs_row = {k: obs_row[k] for k in self._external_keys}
+            obs_row = {k: obs_row[k] for k in self._external_keys ^ set([name for name in obs_row.keys() if "is_empty" in name])} 
 
         self.history.push(obs_row)
 
         obs = self.history.observe()
 
         self.clock.increment()
+
+        #Addition
+        self.update_avail_actions()
+        obs = {
+            "action_mask": self.action_mask,
+            "avail_actions": np.array([[i] for i in list(range(self.action_space.n))]),
+            "real_obs": obs,
+        }
+
 
         return obs
 

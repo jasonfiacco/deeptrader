@@ -84,8 +84,11 @@ class SimpleOrders(ActionScheme):
                                     self._trade_sizes,
                                     self._durations,
                                     [TradeSide.BUY, TradeSide.SELL]))
+
+        #self.actions.extend(list(product(self._criteria, [0], self._durations, [TradeSide.HOLD])))
+        
         self.actions = list(product(self.exchange_pairs, self.actions))
-        self.actions = [None] + self.actions
+        #self.actions = [None] + self.actions
 
         self._action_space = Discrete(len(self.actions))
 
@@ -95,7 +98,7 @@ class SimpleOrders(ActionScheme):
 
         ((exchange, pair), (criteria, prop, duration, side)) = self.actions[action]
         # print(action)
-        # print(((exchange, pair), (criteria, prop, duration, side)))
+        #print(((exchange, pair), (criteria, prop, duration, side)))
 
         price = exchange.quote_price(pair)
 
