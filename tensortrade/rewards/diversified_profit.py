@@ -92,7 +92,7 @@ class DiversifiedProfit(RewardScheme):
         t_f = portfolio.performance.index[-1]
         returns_in_raw_percent = 1 + portfolio.performance['net_worth'].pct_change().dropna()
         profit_this_step = (returns_in_raw_percent[-1:])
-        return math.log(profit_this_step)
+        return (1/t_f) * math.log(profit_this_step)
 
     def _get_change_in_balances(self, portfolio: 'Portfolio') -> float:
         total_balances = portfolio.performance.loc[:, [("total" in name) for name in portfolio.performance.columns]]
